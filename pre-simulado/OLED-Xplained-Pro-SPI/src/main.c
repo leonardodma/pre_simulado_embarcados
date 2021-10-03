@@ -111,7 +111,7 @@ void invert_led(Pio *PIO, const uint32_t MASK, volatile char but_flag){
 		}
 	}
 	else{
-		pio_set(PIO, MASK);
+		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
 
