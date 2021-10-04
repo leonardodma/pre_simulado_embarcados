@@ -189,12 +189,12 @@ void RTT_Handler(void)
 
 	/* IRQ due to Time has changed */
 	if ((ul_status & RTT_SR_RTTINC) == RTT_SR_RTTINC) {
-		//invert_led(LED2_PIO, LED2_IDX_MASK);    // BLINK Led
+		delay_s(5);
 	}
 
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
-		//f_rtt_alarme = 1;                  // flag RTT alarme
+		f_rtt_alarme = 1;                  // flag RTT alarme
 	}
 }
 
@@ -397,8 +397,7 @@ int main (void)
 		if (f_rtt_alarme){
 			
 			/*
-			* IRQ (interrupção ocorre) apos 4s => 4 pulsos por sengundo (0,25s) -> 16 pulsos são necessários para dar 4s
-			* tempo[s] = 0,25 * 16 = 4s
+			* IRQ (interrupção ocorre) apos 5s => 5 pulsos por sengundo (0,2s) -> 25 pulsos são necessários para dar 5s
 			*/
 			uint16_t pllPreScale = (int) (((float) 32768) / 5.0);
 			uint32_t irqRTTvalue = 25;
@@ -412,7 +411,7 @@ int main (void)
 		if (flag_sec){
 			uint32_t h, m, s;
 			rtc_get_time(RTC,&h,&m,&s);
-
+			gfx_mono_draw_string("                ", 35, 2, &sysfont);
 			sprintf(buffer, "%lu:%lu:%lu", h, m, s);
 			gfx_mono_draw_string(buffer, 35, 2, &sysfont);
 			flag_sec= 0;		
