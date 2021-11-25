@@ -93,17 +93,30 @@ volatile char flag_tc7 = 0;
 
 // Rtt
 volatile char f_rtt_alarme = 0;
+volatile char f_rtt_time_changed = 0;
 
 // Rtc
 volatile char flag_rtc = 0;
 volatile char flag_sec = 0;
 
-int counter;
+int counter_progress_bar = 0;
+int pixels = 0;
 uint32_t h, m, s;
 
 /************************************************************************/
 /* Funcoes                                                              */
 /************************************************************************/
+void progress_bar(){
+	if (counter_progress_bar > 9)
+	{
+		gfx_mono_ssd1306_init();
+		pixels = 0;
+		counter_progress_bar = 0;
+	}
+	gfx_mono_draw_filled_circle(8+pixels, 25, 2, GFX_PIXEL_SET, GFX_WHOLE);
+	pixels += 12;
+	counter_progress_bar += 1;
+}
 
 void invert_led(Pio *PIO, const uint32_t MASK, volatile char but_flag){
 	if (but_flag)
@@ -196,12 +209,13 @@ void RTT_Handler(void)
 
 	/* IRQ due to Time has changed */
 	if ((ul_status & RTT_SR_RTTINC) == RTT_SR_RTTINC) {
-		delay_s(5);
+		f_rtt_time_changed = 1;
 	}
 
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
 		f_rtt_alarme = 1;                  // flag RTT alarme
+		//counter = 0;
 	}
 }
 
@@ -212,14 +226,11 @@ void RTC_Handler(void)
 	/* seccond tick	*/
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
 		flag_sec = 1;
-		gfx_mono_draw_filled_circle(8 + counter, 25, 3, GFX_PIXEL_SET, GFX_WHOLE);
-		counter += 10;
 	}
 	
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		flag_rtc = 1;
-		counter = 0;
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_SECCLR);
@@ -381,9 +392,9 @@ int main (void)
 	gfx_mono_ssd1306_init();
 	char buffer [50];
 	// Escreve na tela um circulo e um texto
-	gfx_mono_draw_string("5", 1,15, &sysfont);
-	gfx_mono_draw_string("10", 60,15, &sysfont);
-	gfx_mono_draw_string("1", 120,15, &sysfont);
+	// 	gfx_mono_draw_string("5", 1,15, &sysfont);
+	// 	gfx_mono_draw_string("10", 60,15, &sysfont);
+	// 	gfx_mono_draw_string("1", 120,15, &sysfont);
 
 	/* Insert application code here, after the board has been initialized. */
 	while(1) {
@@ -424,6 +435,11 @@ int main (void)
 			sprintf(buffer, "%lu:%lu:%lu", h, m, s);
 			gfx_mono_draw_string(buffer, 35, 2, &sysfont);
 			flag_sec= 0;
+		}
+		
+		if (f_rtt_time_changed)
+		{
+			progress_bar();
 		}
 		
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
