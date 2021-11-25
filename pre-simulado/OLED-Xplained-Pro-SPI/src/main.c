@@ -6,6 +6,10 @@
 #include "gfx_mono_text.h"
 #include "sysfont.h"
 
+// OLED
+#define OLED_WIDTH  128
+#define OLED_HEIGHT 32
+
 // LED PLACA
 #define LED_PLACA_PIO           PIOC                 // periferico que controla o LED
 #define LED_PLACA_PIO_ID        12                  // ID do periférico PIOC (controla LED)
@@ -59,7 +63,8 @@
 #define BUT3_PIO_PIN_MASK
 
 #define HEIGHT        5
-#define MAX_WIDTH     130
+#define MAX_HEIGHT      5
+#define MAX_WIDTH     128
 
 typedef struct  {
 	uint32_t year;
@@ -93,11 +98,13 @@ volatile char f_rtt_alarme = 0;
 volatile char flag_rtc = 0;
 volatile char flag_sec = 0;
 
+int counter;
 uint32_t h, m, s;
 
 /************************************************************************/
 /* Funcoes                                                              */
 /************************************************************************/
+
 void invert_led(Pio *PIO, const uint32_t MASK, volatile char but_flag){
 	if (but_flag)
 	{
@@ -111,7 +118,7 @@ void invert_led(Pio *PIO, const uint32_t MASK, volatile char but_flag){
 		}
 	}
 	else{
-		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
+		pio_set(PIO, MASK);
 	}
 }
 
@@ -204,12 +211,15 @@ void RTC_Handler(void)
 
 	/* seccond tick	*/
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
-		flag_sec = 1; 
+		flag_sec = 1;
+		gfx_mono_draw_filled_circle(8 + counter, 25, 3, GFX_PIXEL_SET, GFX_WHOLE);
+		counter += 10;
 	}
 	
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		flag_rtc = 1;
+		counter = 0;
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_SECCLR);
@@ -329,7 +339,7 @@ void BUT_init( Pio *p_pio ,uint32_t id, uint32_t mask, void *p_handler, uint32_t
 }
 
 void io_init(void)
-{	
+{
 	board_init();
 	sysclk_init();
 	/* Disable the watchdog */
@@ -395,7 +405,6 @@ int main (void)
 		}
 		
 		if (f_rtt_alarme){
-			
 			/*
 			* IRQ (interrupção ocorre) apos 5s => 5 pulsos por sengundo (0,2s) -> 25 pulsos são necessários para dar 5s
 			*/
@@ -414,7 +423,7 @@ int main (void)
 			gfx_mono_draw_string("                ", 35, 2, &sysfont);
 			sprintf(buffer, "%lu:%lu:%lu", h, m, s);
 			gfx_mono_draw_string(buffer, 35, 2, &sysfont);
-			flag_sec= 0;		
+			flag_sec= 0;
 		}
 		
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
